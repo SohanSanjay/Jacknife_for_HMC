@@ -123,10 +123,85 @@ def Pair_Jacknife(File_Path):
 # For third part of the 
     return X_avg_JN,X_std_deviation;
 
+################################################################################
+# The following part contain modifications done to the jacknife method
+# 1. First the value is calculated according to the usual jackknife procedure
+# 2. The mean and the uncertinity of the mean was calculated using the function before
+# 3. Then the modified function for jackknife is run
+#       #1 for this function some values were removed fromm the original data set
+#       #2 the values removed depending on the mean and the uncertinity
+#       #3 the 'in_cons' value is used as an input for the modified function
+#       #4 (in_cons*uncertinity) values away from the mean was removed and new data set were created
+#       #5 Jackknife method was applied over the new data set to obtain new man and uncertinity value
+################################################################################
+
+def Modified_data_JN_Pair(in_cons,File_Path):
+    val_avg,val_std = Pair_Jacknife(File_Path);
+
+    #######################################################################################
+    #The following content was coppied over frm=om the jacknife function written above
+    x_values = [] #save all N_bins ammout of data values that belongs to the pair_sus.
+    x_ex_means = [] #save N_bins ammount of mean values after excluding the one values from the set
+    
+    # Loop that used to store the pair susceptablity data in x_values array 
+    for index in range(1,N_bins+1):
+        X_val = Pair_susceptibility_data_files(index,File_Path);
+        x_values.append(X_val);
+    #######################################################################################
+    # 'val_std*np.sqrt(N_bins)' is taken insted of 'val_std' because the previous value represents 
+    # The uncertinity of the mean
+
+    val_max_tolarance = val_avg+val_std*np.sqrt(N_bins)*in_cons; # values greater than this in 'x_values' are removed
+    val_min_tolarance = val_avg-val_std*np.sqrt(N_bins)*in_cons; # values smaller than this in 'x_values' are removed 
+
+    x_modified_values = [];
+
+    for index in range(1,N_bins+1):
+        X_val = x_values[index-1];
+        if (X_val > val_min_tolarance) & (X_val < val_max_tolarance):
+            x_modified_values.append(X_val);
+    
+    #######################################################################################
+    #   #1 Find the number of elements in the 'x_modified_values'  
+    #   #2 Apply the jackknife method again over 'x_modified_values'
+
+    N_bins_new = np.array(x_modified_values).size;
+
+    # Following part of the code is a copy of the previous jackknife
+
+    #calculate the N_bins amount of average values and store them on the x_ex_means array
+    #First calculate the total sum and exclude each value from the data set and obtain N_bins ammount of average values
+    x_total_sum = np.sum(x_modified_values);
+
+    for index in range(1,N_bins_new+1):
+        x_sub_total = x_total_sum - x_modified_values[index-1]; # here use index-1 due to array been on 0 to 99 range
+        x_sub_mean = x_sub_total/(N_bins_new-1);
+        x_ex_means.append(x_sub_mean);
+    
+    #Average value obtained by applying Jacknife method 
+    X_avg_JN = np.sum(x_ex_means)/N_bins_new;
+
+    #Standard diviation obtained by using Jacknife method
+    #First subtract the Jacknife mean value from all the values in the array
+    x_sub_mean_square = [(x - X_avg_JN)*(x - X_avg_JN) for x in x_ex_means];
+    #Second calculate the Standard diviation from this dataset
+    X_std_deviation = np.sqrt((N_bins_new-1)*(np.sum(x_sub_mean_square))/(N_bins_new));
+    print(x_modified_values)
+################################################################################
+# For third part of the 
+    return X_avg_JN,X_std_deviation;
+
+
+
+
+##############################################################
+#This section of the code is used to check the function
 
 val_avg,val_std = Pair_Jacknife(File_Path);
+val_avg1,val_std1 = Modified_data_JN_Pair(5,File_Path)
 print(val_avg);
 print(val_std);
-
+print(val_avg1);
+print(val_std1);
 
 

@@ -1,6 +1,7 @@
 # Import header files
 import numpy as np
 import csv
+import matplotlib.pyplot as plt
 
 #Parameters of the lattice simulation
 
@@ -92,8 +93,9 @@ def Pair_susceptibility_data_files(index,File_path):
 # 2. 
 ################################################################################################################################
 
+
 def Pair_Jacknife(File_Path):
-    x_values = [] #save all N_bins ammout of data values that belongs to the pair_sus.
+    x_values = []; #save all N_bins ammout of data values that belongs to the pair_sus.
     x_ex_means = [] #save N_bins ammount of mean values after excluding the one values from the set
     
     # Loop that used to store the pair susceptablity data in x_values array 
@@ -121,7 +123,7 @@ def Pair_Jacknife(File_Path):
 
 ################################################################################
 # For third part of the 
-    return X_avg_JN,X_std_deviation;
+    return X_avg_JN,X_std_deviation,x_values;
 
 ################################################################################
 # The following part contain modifications done to the jacknife method
@@ -136,26 +138,19 @@ def Pair_Jacknife(File_Path):
 ################################################################################
 
 def Modified_data_JN_Pair(in_cons,File_Path):
-    val_avg,val_std = Pair_Jacknife(File_Path);
-
+    val_avg,val_std,x_values = Pair_Jacknife(File_Path);
+    x_modified_values = [];
     #######################################################################################
     #The following content was coppied over frm=om the jacknife function written above
-    x_values = [] #save all N_bins ammout of data values that belongs to the pair_sus.
+
     x_ex_means = [] #save N_bins ammount of mean values after excluding the one values from the set
     
-    # Loop that used to store the pair susceptablity data in x_values array 
-    for index in range(1,N_bins+1):
-        X_val = Pair_susceptibility_data_files(index,File_Path);
-        x_values.append(X_val);
     #######################################################################################
     # 'val_std*np.sqrt(N_bins)' is taken insted of 'val_std' because the previous value represents 
     # The uncertinity of the mean
 
     val_max_tolarance = val_avg+val_std*np.sqrt(N_bins)*in_cons; # values greater than this in 'x_values' are removed
     val_min_tolarance = val_avg-val_std*np.sqrt(N_bins)*in_cons; # values smaller than this in 'x_values' are removed 
-
-    x_modified_values = [];
-
     for index in range(1,N_bins+1):
         X_val = x_values[index-1];
         if (X_val > val_min_tolarance) & (X_val < val_max_tolarance):
@@ -186,22 +181,33 @@ def Modified_data_JN_Pair(in_cons,File_Path):
     x_sub_mean_square = [(x - X_avg_JN)*(x - X_avg_JN) for x in x_ex_means];
     #Second calculate the Standard diviation from this dataset
     X_std_deviation = np.sqrt((N_bins_new-1)*(np.sum(x_sub_mean_square))/(N_bins_new));
-    print(x_modified_values)
 ################################################################################
 # For third part of the 
-    return X_avg_JN,X_std_deviation;
+    return X_avg_JN,X_std_deviation,x_modified_values,N_bins_new;
+################################################################################
+################################################################################
+# The below part of the code is used to visualize the data set and the values 
+# that are removed from the modified Jackknife method
+################################################################################
+def visualise(File_Path,in_cons,N_bins,file_name):
+    val_avg,val_std,x_all = Pair_Jacknife(File_Path);
+    val_avg1,val_std1,x_mod,N_new_bins = Modified_data_JN_Pair(in_cons,File_Path);
+
+    plt.figure();
+    plt.hist(x_all,bins=N_bins);
+    plt.hist(x_mod,bins=N_bins);
+    plt.show();
+    if file_name != 'NAN':
+        plt.savefig(file_name);
 
 
-
+################################################################################
 
 ##############################################################
 #This section of the code is used to check the function
+# print(val_avg);
+# print(val_std);
+# print(val_avg1);
+# print(val_std1);
 
-val_avg,val_std = Pair_Jacknife(File_Path);
-val_avg1,val_std1 = Modified_data_JN_Pair(5,File_Path)
-print(val_avg);
-print(val_std);
-print(val_avg1);
-print(val_std1);
-
-
+visualise(File_Path,3,N_bins,'file_name');
